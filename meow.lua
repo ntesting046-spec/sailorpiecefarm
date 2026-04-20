@@ -35,7 +35,16 @@ local HUNT_INTERVAL = 15 * 60 -- 15 minutes between hunts
 local state = {
   scriptEnabled = false,
   lastHuntTime = 0,
-  tweenActive = false
+  tweenActive = false,
+  spamKey = 0x56
+}
+
+local KEYBINDS = {
+    ["Z"] = 0x5A,
+    ["X"] = 0x58,
+    ["C"] = 0x43,
+    ["V"] = 0x56,
+    ["F"] = 0x46
 }
 
 local tweenConn = nil
@@ -79,6 +88,14 @@ end
 local function tweenToTarget(targetPos)
     if state.tweenActive then cancelTween() end
     state.tweenActive = true
+    
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        -- Go up 60 studs at the start of the tween
+        hrp.CFrame = hrp.CFrame + Vector3.new(0, 60, 0)
+    end
+
     tweenConn = RunService.Heartbeat:Connect(function()
         if not state.tweenActive then
             if tweenConn then tweenConn:Disconnect(); tweenConn = nil end
@@ -91,6 +108,18 @@ local function tweenToTarget(targetPos)
         if diff.Magnitude < 10 then
             pcall(function() hrp.AssemblyLinearVelocity = Vector3.zero end)
             cancelTween()
+            task.spawn(function()
+                task.wait(1)
+                pcall(function()
+                    keypress(0x20)
+                    task.wait(0.05)
+                    keyrelease(0x20)
+                    task.wait(0.1)
+                    keypress(0x20)
+                    task.wait(0.05)
+                    keyrelease(0x20)
+                end)
+            end)
             return
         end
         local speed = TWEEN_SPEED
@@ -127,7 +156,7 @@ local createWindowOk, createWindowErr = pcall(function()
         Divider = true,
         ConfigFile = "farming_automation.json",
         BuiltInIndicatorToggle = false,
-        Width   = 300,
+        Width   = 450,
         Theme   = { Colors = { Accent = Color3.fromRGB(0, 170, 220) } }
     })
 end)
@@ -224,7 +253,32 @@ Window:AddSlider("tween_speed", {
     end
 })
 
+Window:AddDropdown("spam_key_select", {
+    Text = "Spam Key",
+    Description = "Key to spam when not tweening",
+    Options = {"Z", "X", "C", "V", "F"},
+    Default = "V",
+    Column = 1,
+    Callback = function(v)
+        state.spamKey = KEYBINDS[v]
+    end
+})
+
 print("✓ UI elements added successfully")
+
+-- ==================== V KEY SPAM ====================
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if state.scriptEnabled and not state.tweenActive then
+            pcall(function()
+                keypress(state.spamKey)
+                task.wait(0.05)
+                keyrelease(state.spamKey)
+            end)
+        end
+    end
+end)
 
 -- ==================== MAIN LOOP ====================
 local bossTweened = false
@@ -418,7 +472,7 @@ while true do
         if Window and Window.Step then
             Window:Step() 
         end
-    end)  
+    end)
     if not ok then 
         warn("Step error: " .. tostring(err))
         task.wait(1) 
