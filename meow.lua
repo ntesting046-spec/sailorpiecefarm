@@ -92,8 +92,8 @@ local function tweenToTarget(targetPos)
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
-        -- Go up 60 studs at the start of the tween
-        hrp.CFrame = hrp.CFrame + Vector3.new(0, 60, 0)
+        -- Go up 30 studs at the start of the tween
+        hrp.CFrame = hrp.CFrame + Vector3.new(0, 30, 0)
     end
 
     tweenConn = RunService.Heartbeat:Connect(function()
